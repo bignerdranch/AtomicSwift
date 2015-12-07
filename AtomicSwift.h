@@ -13,16 +13,38 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifndef __has_feature
+#define __has_feature(x) 0
+#endif
+
 #ifndef __has_extension
-#define __has_extension(name)
+#define __has_extension(x) 0
+#endif
+
+#ifndef __has_attribute
+#define __has_attribute(x) 0
 #endif
 
 #if __GNUC__
-#define BNR_ATOMIC_USED __attribute__((__used__))
-#define BNR_ATOMIC_INLINE static __inline__ __attribute__((always_inline))
+#define BNR_ATOMIC_USED        __attribute__((__used__))
+#define BNR_ATOMIC_INLINE      static __inline__ __attribute__((always_inline))
+#if __has_attribute(swift_private)
+#define BNR_ATOMIC_DECL        static __inline__ __attribute__((used, always_inline, swift_private))
+#else
+#define BNR_ATOMIC_DECL        static __inline__ __attribute__((used, always_inline))
+#endif
+#define BNR_ATOMIC_FASTPATH(x) ((typeof(x))__builtin_expect((long)(x), ~0l))
 #else
 #define BNR_ATOMIC_USED
 #define BNR_ATOMIC_INLINE static inline
+#define BNR_ATOMIC_FASTPATH(x) (x)
+#define BNR_ATOMIC_DECL        static inline
+#endif
+
+#if __has_feature(objc_fixed_enum) || __has_extension(cxx_strong_enums)
+#define BNR_ATOMIC_ENUM(name, type, ...) typedef enum : type { __VA_ARGS__ } name##_t
+#else
+#define BNR_ATOMIC_ENUM(name, type, ...) enum { __VA_ARGS__ }; typedef type name##_t
 #endif
 
 #if __has_extension(c_atomic)
