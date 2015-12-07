@@ -1,0 +1,4 @@
+module AtomicSwift {
+	header "AtomicSwift.h"
+	export *
+}
