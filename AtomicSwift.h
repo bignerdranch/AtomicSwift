@@ -27,11 +27,11 @@
 
 #if __has_extension(c_atomic)
 
-typedef _Atomic(int32_t)         bnr_atomic_int32_t;
-typedef _Atomic(uint32_t)        bnr_atomic_uint32_t;
-typedef _Atomic(int64_t)         bnr_atomic_int64_t;
-typedef _Atomic(uint64_t)        bnr_atomic_uint64_t;
-typedef volatile _Atomic(void *) bnr_atomic_ptr_t;
+typedef _Atomic(int32_t)  bnr_atomic_int32_t;
+typedef _Atomic(uint32_t) bnr_atomic_uint32_t;
+typedef _Atomic(int64_t)  bnr_atomic_int64_t;
+typedef _Atomic(uint64_t) bnr_atomic_uint64_t;
+typedef _Atomic(void *)   bnr_atomic_ptr_t;
 typedef struct atomic_flag {
     _Atomic(_Bool) _Value;
 }                                bnr_spinlock_t;
@@ -81,7 +81,7 @@ BNR_ATOMIC_INLINE BNR_ATOMIC_USED int32_t __bnr_atomic_and_32_orig(bnr_atomic_ui
     return __c11_atomic_fetch_and(address, mask, __ATOMIC_SEQ_CST);
 }
 
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED bool __bnr_atomic_compare_and_swap_32(bnr_atomic_int32_t *address, int32_t expected, int32_t desired) {
+BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_32(bnr_atomic_int32_t *address, int32_t expected, int32_t desired) {
     return __c11_atomic_compare_exchange_strong(address, &expected, desired, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED);
 }
 
@@ -105,7 +105,7 @@ BNR_ATOMIC_INLINE BNR_ATOMIC_USED int64_t __bnr_atomic_decrement_64(bnr_atomic_i
     return __bnr_atomic_sub_64(address, 1);
 }
 
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED bool __bnr_atomic_compare_and_swap_64(bnr_atomic_int64_t *address, int64_t expected, int64_t desired) {
+BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_64(bnr_atomic_int64_t *address, int64_t expected, int64_t desired) {
     return __c11_atomic_compare_exchange_strong(address, &expected, desired, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED);
 }
 
@@ -113,11 +113,11 @@ BNR_ATOMIC_INLINE BNR_ATOMIC_USED void *__bnr_atomic_load_ptr(bnr_atomic_ptr_t *
     return __c11_atomic_load(address, __ATOMIC_SEQ_CST);
 }
 
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED bool __bnr_atomic_compare_and_swap_ptr(bnr_atomic_ptr_t *address, void *expected, void **desired) {
+BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_ptr(bnr_atomic_ptr_t *address, void *expected, void **desired) {
     return __c11_atomic_compare_exchange_strong(address, expected, desired, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED);
 }
 
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED bool __bnr_spinlock_try(bnr_spinlock_t *address) {
+BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_spinlock_try(bnr_spinlock_t *address) {
     return __c11_atomic_exchange(&address->_Value, 1, __ATOMIC_ACQUIRE);
 }
 
@@ -193,7 +193,7 @@ BNR_ATOMIC_INLINE BNR_ATOMIC_USED int32_t __bnr_atomic_and_32_orig(bnr_atomic_ui
     return OSAtomicAnd32Orig(mask, address);
 }
 
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED bool __bnr_atomic_compare_and_swap_32(volatile int32_t *address, int32_t expected, int32_t desired) {
+BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_32(volatile int32_t *address, int32_t expected, int32_t desired) {
     return OSAtomicCompareAndSwap32(expected, desired, address);
 }
 
@@ -217,7 +217,7 @@ BNR_ATOMIC_INLINE BNR_ATOMIC_USED int64_t __bnr_atomic_decrement_64(bnr_atomic_i
     return OSAtomicDecrement64(address);
 }
 
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED bool __bnr_atomic_compare_and_swap_64(bnr_atomic_int64_t *address, int64_t expected, int64_t desired) {
+BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_64(bnr_atomic_int64_t *address, int64_t expected, int64_t desired) {
     return OSAtomicCompareAndSwap64(expected, desired, address);
 }
 
@@ -225,11 +225,11 @@ BNR_ATOMIC_INLINE BNR_ATOMIC_USED void *__bnr_atomic_load_ptr(bnr_atomic_ptr_t *
     return *address;
 }
 
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED bool __bnr_atomic_compare_and_swap_ptr(bnr_atomic_ptr_t *address, void *expected, void *desired) {
+BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_ptr(bnr_atomic_ptr_t *address, void *expected, void *desired) {
     return OSAtomicCompareAndSwapPtr(expected, desired, address);
 }
 
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED bool __bnr_spinlock_try(bnr_spinlock_t *address) {
+BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_spinlock_try(bnr_spinlock_t *address) {
     return OSSpinLockTry(address);
 }
 
