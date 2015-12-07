@@ -69,17 +69,13 @@ typedef _Atomic(void *)   bnr_atomic_ptr_t;
         volatile long long*: (volatile _Atomic(long long) *)(p), \
         default: (volatile _Atomic(void *) *)(p))
 
+#define __bnr_atomic_load(ptr, model) ({ \
+        __c11_atomic_load(__bnr_cast_atomic(ptr), bnr_atomic_memory_order_##model); \
+})
+
 #define __bnr_atomic_store(ptr, val, model) ({ \
         __c11_atomic_store(__bnr_cast_atomic(ptr), val, bnr_atomic_memory_order_##model); \
 })
-
-BNR_ATOMIC_DECL void bnr_atomic_store_32(volatile int32_t *address, int32_t value) {
-    __bnr_atomic_store(address, value, seq_cst);
-}
-
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED int32_t __bnr_atomic_load_32(bnr_atomic_int32_t *address) {
-    return __c11_atomic_load(address, __ATOMIC_SEQ_CST);
-}
 
 BNR_ATOMIC_INLINE BNR_ATOMIC_USED int32_t __bnr_atomic_add_32(bnr_atomic_int32_t *address, int32_t amount) {
     return __c11_atomic_fetch_add(address, amount, __ATOMIC_SEQ_CST);
@@ -125,12 +121,8 @@ BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_32(bnr_ato
     return __c11_atomic_compare_exchange_strong(address, &expected, desired, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED);
 }
 
-BNR_ATOMIC_DECL void bnr_atomic_store_64(volatile int64_t *address, int64_t value) {
-    __bnr_atomic_store(address, value, seq_cst);
 }
 
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED int64_t __bnr_atomic_load_64(bnr_atomic_int64_t *address) {
-    return __c11_atomic_load(address, __ATOMIC_SEQ_CST);
 }
 
 BNR_ATOMIC_INLINE BNR_ATOMIC_USED int64_t __bnr_atomic_add_64(bnr_atomic_int64_t *address, int64_t amount) {
@@ -151,14 +143,6 @@ BNR_ATOMIC_INLINE BNR_ATOMIC_USED int64_t __bnr_atomic_decrement_64(bnr_atomic_i
 
 BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_64(bnr_atomic_int64_t *address, int64_t expected, int64_t desired) {
     return __c11_atomic_compare_exchange_strong(address, &expected, desired, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED);
-}
-
-BNR_ATOMIC_DECL void bnr_atomic_store_ptr(void *volatile *address, void *value) {
-    __bnr_atomic_store(address, value, seq_cst);
-}
-
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED void *__bnr_atomic_load_ptr(bnr_atomic_ptr_t *address) {
-    return __c11_atomic_load(address, __ATOMIC_SEQ_CST);
 }
 
 BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_ptr(bnr_atomic_ptr_t *address, void *expected, void **desired) {
@@ -199,21 +183,45 @@ typedef volatile uint32_t bnr_atomic_uint32_t;
 typedef volatile int64_t  bnr_atomic_int64_t;
 typedef volatile uint64_t bnr_atomic_uint64_t;
 typedef void *volatile    bnr_atomic_ptr_t;
-#define __bnr_atomic_store(ptr, val, model) ({ \
-        OSMemoryBarrier(); \
-        *(ptr) = (val); \
-        OSMemoryBarrier(); \
+#define __bnr_atomic_load(ptr, model) ({ \
+        typeof(*(ptr)) _ret = *(ptr); \
+        switch (bnr_atomic_memory_order_##model) { \
+        case bnr_atomic_memory_order_seq_cst: \
+            OSMemoryBarrier(); /* fallthrough */ \
+        case bnr_atomic_memory_order_relaxed: \
+            break; \
+        default: \
+            _bnr_atomic_unimplemented(); \
+            break; \
+        } \
+        _ret; \
 })
 
-BNR_ATOMIC_DECL void bnr_atomic_store_32(volatile int32_t *address, int32_t value) {
-    __bnr_atomic_store(address, value, seq_cst);
-}
-
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED int32_t __bnr_atomic_load_32(bnr_atomic_int32_t *address) {
-    return *address;
-}
+#define __bnr_atomic_store(ptr, val, model) ({ \
+        switch (bnr_atomic_memory_order_##model) { \
+        case bnr_atomic_memory_order_release: \
+        case bnr_atomic_memory_order_seq_cst: \
+            OSMemoryBarrier(); /* fallthrough */ \
+        case bnr_atomic_memory_order_relaxed: \
+            *(ptr) = (val); \
+            break; \
+        default: \
+            _bnr_atomic_unimplemented(); \
+            break; \
+        } \
+        \
+        switch (bnr_atomic_memory_order_##model) { \
+        case bnr_atomic_memory_order_seq_cst: \
+            OSMemoryBarrier(); break; \
+        default: \
+            break; \
+        } \
+})
 
 BNR_ATOMIC_INLINE BNR_ATOMIC_USED int32_t __bnr_atomic_add_32(bnr_atomic_int32_t *address, int32_t amount) {
+#define __bnr_atomic_unimplemented() \
+    __asm__(".err unimplemented")
+
     return OSAtomicAdd32(amount, address);
 }
 
@@ -257,14 +265,6 @@ BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_32(volatil
     return OSAtomicCompareAndSwap32(expected, desired, address);
 }
 
-BNR_ATOMIC_DECL void bnr_atomic_store_64(volatile int64_t *address, int64_t value) {
-    __bnr_atomic_store(address, value, seq_cst);
-}
-
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED int64_t __bnr_atomic_load_64(bnr_atomic_int64_t *address) {
-    return *address;
-}
-
 BNR_ATOMIC_INLINE BNR_ATOMIC_USED int64_t __bnr_atomic_add_64(bnr_atomic_int64_t *address, int64_t amount) {
     return OSAtomicAdd64(amount, address);
 }
@@ -283,14 +283,6 @@ BNR_ATOMIC_INLINE BNR_ATOMIC_USED int64_t __bnr_atomic_decrement_64(bnr_atomic_i
 
 BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_64(bnr_atomic_int64_t *address, int64_t expected, int64_t desired) {
     return OSAtomicCompareAndSwap64(expected, desired, address);
-}
-
-BNR_ATOMIC_DECL void bnr_atomic_store_ptr(void *volatile *address, void *value) {
-    __bnr_atomic_store(address, value, seq_cst);
-}
-
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED void *__bnr_atomic_load_ptr(bnr_atomic_ptr_t *address) {
-    return *address;
 }
 
 BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_ptr(bnr_atomic_ptr_t *address, void *expected, void *desired) {
@@ -316,3 +308,27 @@ BNR_ATOMIC_DECL void __bnr_spinlock_unlock(volatile bnr_spinlock_t *address) {
 #error Unsupported platform for atomic locking primitives
 #endif
 #endif
+
+BNR_ATOMIC_DECL int32_t __bnr_atomic_load_32(volatile int32_t *address) {
+    return __bnr_atomic_load(address, seq_cst);
+}
+
+BNR_ATOMIC_DECL void bnr_atomic_store_32(volatile int32_t *address, int32_t value) {
+    __bnr_atomic_store(address, value, seq_cst);
+}
+
+BNR_ATOMIC_DECL int64_t __bnr_atomic_load_64(volatile int64_t *address) {
+    return __bnr_atomic_load(address, seq_cst);
+}
+
+BNR_ATOMIC_DECL void bnr_atomic_store_64(volatile int64_t *address, int64_t value) {
+    __bnr_atomic_store(address, value, seq_cst);
+}
+
+BNR_ATOMIC_DECL void *__bnr_atomic_load_ptr(void *volatile *address) {
+    return __bnr_atomic_load(address, seq_cst);
+}
+
+BNR_ATOMIC_DECL void bnr_atomic_store_ptr(void *volatile *address, void *value) {
+    __bnr_atomic_store(address, value, seq_cst);
+}
