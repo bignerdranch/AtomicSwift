@@ -47,13 +47,35 @@
 #define BNR_ATOMIC_ENUM(name, type, ...) enum { __VA_ARGS__ }; typedef type name##_t
 #endif
 
-#if __has_extension(c_atomic)
+BNR_ATOMIC_ENUM(bnr_atomic_memory_order, int32_t,
+    bnr_atomic_memory_order_relaxed,
+    bnr_atomic_memory_order_consume,
+    bnr_atomic_memory_order_acquire,
+    bnr_atomic_memory_order_release,
+    bnr_atomic_memory_order_acq_rel,
+    bnr_atomic_memory_order_seq_cst
+);
+
+#if __has_extension(c_atomic) && __has_extension(c_generic_selections)
 
 typedef _Atomic(int32_t)  bnr_atomic_int32_t;
 typedef _Atomic(uint32_t) bnr_atomic_uint32_t;
 typedef _Atomic(int64_t)  bnr_atomic_int64_t;
 typedef _Atomic(uint64_t) bnr_atomic_uint64_t;
 typedef _Atomic(void *)   bnr_atomic_ptr_t;
+#define __bnr_cast_atomic(p) _Generic((p), \
+        volatile int*: (volatile _Atomic(int) *)(p), \
+        volatile long*: (volatile _Atomic(long) *)(p), \
+        volatile long long*: (volatile _Atomic(long long) *)(p), \
+        default: (volatile _Atomic(void *) *)(p))
+
+#define __bnr_atomic_store(ptr, val, model) ({ \
+        __c11_atomic_store(__bnr_cast_atomic(ptr), val, bnr_atomic_memory_order_##model); \
+})
+
+BNR_ATOMIC_DECL void bnr_atomic_store_32(volatile int32_t *address, int32_t value) {
+    __bnr_atomic_store(address, value, seq_cst);
+}
 
 BNR_ATOMIC_INLINE BNR_ATOMIC_USED int32_t __bnr_atomic_load_32(bnr_atomic_int32_t *address) {
     return __c11_atomic_load(address, __ATOMIC_SEQ_CST);
@@ -103,6 +125,10 @@ BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_32(bnr_ato
     return __c11_atomic_compare_exchange_strong(address, &expected, desired, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED);
 }
 
+BNR_ATOMIC_DECL void bnr_atomic_store_64(volatile int64_t *address, int64_t value) {
+    __bnr_atomic_store(address, value, seq_cst);
+}
+
 BNR_ATOMIC_INLINE BNR_ATOMIC_USED int64_t __bnr_atomic_load_64(bnr_atomic_int64_t *address) {
     return __c11_atomic_load(address, __ATOMIC_SEQ_CST);
 }
@@ -125,6 +151,10 @@ BNR_ATOMIC_INLINE BNR_ATOMIC_USED int64_t __bnr_atomic_decrement_64(bnr_atomic_i
 
 BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_64(bnr_atomic_int64_t *address, int64_t expected, int64_t desired) {
     return __c11_atomic_compare_exchange_strong(address, &expected, desired, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED);
+}
+
+BNR_ATOMIC_DECL void bnr_atomic_store_ptr(void *volatile *address, void *value) {
+    __bnr_atomic_store(address, value, seq_cst);
 }
 
 BNR_ATOMIC_INLINE BNR_ATOMIC_USED void *__bnr_atomic_load_ptr(bnr_atomic_ptr_t *address) {
@@ -169,6 +199,15 @@ typedef volatile uint32_t bnr_atomic_uint32_t;
 typedef volatile int64_t  bnr_atomic_int64_t;
 typedef volatile uint64_t bnr_atomic_uint64_t;
 typedef void *volatile    bnr_atomic_ptr_t;
+#define __bnr_atomic_store(ptr, val, model) ({ \
+        OSMemoryBarrier(); \
+        *(ptr) = (val); \
+        OSMemoryBarrier(); \
+})
+
+BNR_ATOMIC_DECL void bnr_atomic_store_32(volatile int32_t *address, int32_t value) {
+    __bnr_atomic_store(address, value, seq_cst);
+}
 
 BNR_ATOMIC_INLINE BNR_ATOMIC_USED int32_t __bnr_atomic_load_32(bnr_atomic_int32_t *address) {
     return *address;
@@ -218,6 +257,10 @@ BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_32(volatil
     return OSAtomicCompareAndSwap32(expected, desired, address);
 }
 
+BNR_ATOMIC_DECL void bnr_atomic_store_64(volatile int64_t *address, int64_t value) {
+    __bnr_atomic_store(address, value, seq_cst);
+}
+
 BNR_ATOMIC_INLINE BNR_ATOMIC_USED int64_t __bnr_atomic_load_64(bnr_atomic_int64_t *address) {
     return *address;
 }
@@ -240,6 +283,10 @@ BNR_ATOMIC_INLINE BNR_ATOMIC_USED int64_t __bnr_atomic_decrement_64(bnr_atomic_i
 
 BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_64(bnr_atomic_int64_t *address, int64_t expected, int64_t desired) {
     return OSAtomicCompareAndSwap64(expected, desired, address);
+}
+
+BNR_ATOMIC_DECL void bnr_atomic_store_ptr(void *volatile *address, void *value) {
+    __bnr_atomic_store(address, value, seq_cst);
 }
 
 BNR_ATOMIC_INLINE BNR_ATOMIC_USED void *__bnr_atomic_load_ptr(bnr_atomic_ptr_t *address) {
