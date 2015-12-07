@@ -117,24 +117,24 @@ BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_atomic_compare_and_swap_ptr(bnr_at
     return __c11_atomic_compare_exchange_strong(address, expected, desired, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED);
 }
 
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_spinlock_try(bnr_spinlock_t *address) {
-    return __c11_atomic_exchange(&address->_Value, 1, __ATOMIC_ACQUIRE);
+BNR_ATOMIC_INLINE BNR_ATOMIC_USED _Bool __bnr_spinlock_try(volatile bnr_spinlock_t *address) {
+    return !__c11_atomic_exchange(&address->_Value, 1, __ATOMIC_SEQ_CST);
 }
 
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED void __bnr_spinlock_lock(bnr_spinlock_t *address) {
+BNR_ATOMIC_INLINE BNR_ATOMIC_USED void __bnr_spinlock_lock(volatile bnr_spinlock_t *address) {
     while (!__bnr_spinlock_try(address)) {
 #if (defined(__x86_64__) || defined(__i386__))
         __asm __volatile("pause":::"memory");
 #elif (defined(__arm__) || defined(__arm64__))
         __asm __volatile("wfe");
 #else
-        do {} while (0)
+        do {} while (0);
 #endif
     }
 }
 
-BNR_ATOMIC_INLINE BNR_ATOMIC_USED void __bnr_spinlock_unlock(bnr_spinlock_t *address) {
-    __c11_atomic_store(&address->_Value, 0, __ATOMIC_RELEASE);
+BNR_ATOMIC_INLINE BNR_ATOMIC_USED void __bnr_spinlock_unlock(volatile bnr_spinlock_t *address) {
+    __c11_atomic_store(&address->_Value, 0, __ATOMIC_SEQ_CST);
 }
 
 #elif __APPLE__
