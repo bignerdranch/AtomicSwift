@@ -39,20 +39,26 @@
 #define BNR_ATOMIC_FASTPATH(x) (x)
 #endif
 
-#if __has_feature(objc_fixed_enum) || __has_extension(cxx_strong_enums)
-#define BNR_ATOMIC_ENUM(name, type, ...) typedef enum : type { __VA_ARGS__ } name##_t
+// SWIFT_ENUM should be namespaced, but the Swift compiler looks for specific macros
+#if !defined(SWIFT_ENUM)
+#if __has_feature(objc_fixed_enum)
+#if !defined(SWIFT_ENUM_EXTRA)
+#define SWIFT_ENUM_EXTRA
+#endif
+#define SWIFT_ENUM(_name, _type, ...) enum _name : _type _name; enum SWIFT_ENUM_EXTRA _name : _type
 #else
-#define BNR_ATOMIC_ENUM(name, type, ...) enum { __VA_ARGS__ }; typedef type name##_t
+#define SWIFT_ENUM(_name, _type, ...) _type _name; enum
+#endif
 #endif
 
-BNR_ATOMIC_ENUM(bnr_atomic_memory_order, int32_t,
+typedef SWIFT_ENUM(bnr_atomic_memory_order_t, int32_t) {
     bnr_atomic_memory_order_relaxed,
     bnr_atomic_memory_order_consume,
     bnr_atomic_memory_order_acquire,
     bnr_atomic_memory_order_release,
     bnr_atomic_memory_order_acq_rel,
     bnr_atomic_memory_order_seq_cst
-);
+};
 
 #if __has_extension(c_atomic) && __has_extension(c_generic_selections)
 
@@ -161,7 +167,7 @@ BNR_ATOMIC_DECL _Bool bnr_atomic_compare_and_swap_ptr(void *volatile *address, v
     typeof(*(ptr)) _ret = *(ptr); \
     switch (bnr_atomic_memory_order_##model) { \
     case bnr_atomic_memory_order_seq_cst: \
-        OSMemoryBarrier(); /* fallthrough */ \
+        OSMemoryBarrier(); \
     case bnr_atomic_memory_order_relaxed: \
         break; \
     default: \
@@ -175,7 +181,7 @@ BNR_ATOMIC_DECL _Bool bnr_atomic_compare_and_swap_ptr(void *volatile *address, v
     switch (bnr_atomic_memory_order_##model) { \
     case bnr_atomic_memory_order_release: \
     case bnr_atomic_memory_order_seq_cst: \
-        OSMemoryBarrier(); /* fallthrough */ \
+        OSMemoryBarrier(); \
     case bnr_atomic_memory_order_relaxed: \
         *(ptr) = (val); \
         break; \
@@ -349,4 +355,3 @@ BNR_ATOMIC_DECL void bnr_spinlock_unlock(volatile bnr_spinlock_t *address) {
 #else
 #error Unsupported platform for spinlock
 #endif
-
