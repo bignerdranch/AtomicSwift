@@ -51,6 +51,16 @@ BNR_ATOMIC_ENUM(bnr_atomic_memory_order, int32_t,
     bnr_atomic_memory_order_seq_cst
 );
 
+BNR_ATOMIC_DECL void bnr_atomic_spin(void) {
+#if (defined(__x86_64__) || defined(__i386__))
+        __asm __volatile("pause":::"memory");
+#elif (defined(__arm__) || defined(__arm64__))
+        __asm __volatile("wfe");
+#else
+        do {} while (0);
+#endif
+}
+
 #if __has_extension(c_atomic) && __has_extension(c_generic_selections)
 
 #define __bnr_atomic_base(p) typeof(*_Generic((p), \
@@ -163,13 +173,7 @@ BNR_ATOMIC_DECL _Bool bnr_spinlock_try(volatile bnr_spinlock_t *address) {
 
 BNR_ATOMIC_DECL void bnr_spinlock_lock(volatile bnr_spinlock_t *address) {
     while (!BNR_ATOMIC_FASTPATH(bnr_spinlock_try(address))) {
-#if (defined(__x86_64__) || defined(__i386__))
-        __asm __volatile("pause":::"memory");
-#elif (defined(__arm__) || defined(__arm64__))
-        __asm __volatile("wfe");
-#else
-        do {} while (0);
-#endif
+        bnr_atomic_spin();
     }
 }
 
