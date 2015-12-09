@@ -164,7 +164,6 @@ BNR_ATOMIC_DECL _Bool bnr_atomic_compare_and_swap_ptr(void *volatile *address, v
 #elif __APPLE__
 
 #define __bnr_atomic_load(ptr, model) ({ \
-    typeof(*(ptr)) _ret = *(ptr); \
     switch (bnr_atomic_memory_order_##model) { \
     case bnr_atomic_memory_order_seq_cst: \
         OSMemoryBarrier(); \
@@ -174,7 +173,7 @@ BNR_ATOMIC_DECL _Bool bnr_atomic_compare_and_swap_ptr(void *volatile *address, v
         __bnr_atomic_unimplemented(); \
         break; \
     } \
-    _ret; \
+    *(ptr); \
 })
 
 #define __bnr_atomic_store(ptr, val, model) ({ \
