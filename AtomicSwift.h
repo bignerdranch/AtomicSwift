@@ -9,7 +9,6 @@
 #define __BNR_ATOMIC_SHIMS__
 
 #include <stddef.h>
-#include <sys/cdefs.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -27,9 +26,9 @@
 
 #if __GNUC__
 #if __has_attribute(swift_private)
-#define BNR_ATOMIC_DECL        static __inline__ __attribute__((used, always_inline, swift_private))
+#define BNR_ATOMIC_DECL        static inline __attribute__((used, always_inline, swift_private))
 #else
-#define BNR_ATOMIC_DECL        static __inline__ __attribute__((used, always_inline))
+#define BNR_ATOMIC_DECL        static inline __attribute__((used, always_inline))
 #endif
 #define BNR_ATOMIC_FASTPATH(x) ((typeof(x))__builtin_expect((long)(x), ~0l))
 #else
@@ -55,14 +54,12 @@ BNR_ATOMIC_ENUM(bnr_atomic_memory_order, int32_t,
 #if __has_extension(c_atomic) && __has_extension(c_generic_selections)
 
 #define __bnr_atomic_base(p) typeof(*_Generic((p), \
-    volatile int16_t *: (int16_t *)(p), \
     volatile int32_t *: (int32_t *)(p), \
     volatile int64_t *: (int64_t *)(p), \
     default:            (void   **)(p) \
 ))
 
 #define __bnr_cast_atomic(p) _Generic((p), \
-    volatile int16_t *: (volatile _Atomic(int16_t) *)(p), \
     volatile int32_t *: (volatile _Atomic(int32_t) *)(p), \
     volatile int64_t *: (volatile _Atomic(int64_t) *)(p), \
     default:            (volatile _Atomic(void *)  *)(p) \
