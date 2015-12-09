@@ -51,16 +51,6 @@ BNR_ATOMIC_ENUM(bnr_atomic_memory_order, int32_t,
     bnr_atomic_memory_order_seq_cst
 );
 
-BNR_ATOMIC_DECL void bnr_atomic_spin(void) {
-#if (defined(__x86_64__) || defined(__i386__))
-        __asm __volatile("pause":::"memory");
-#elif (defined(__arm__) || defined(__arm64__))
-        __asm __volatile("wfe");
-#else
-        do {} while (0);
-#endif
-}
-
 #if __has_extension(c_atomic) && __has_extension(c_generic_selections)
 
 #define __bnr_atomic_base(p) typeof(*_Generic((p), \
@@ -160,25 +150,6 @@ BNR_ATOMIC_DECL _Bool bnr_atomic_compare_and_swap_64(volatile int64_t *address, 
 
 BNR_ATOMIC_DECL _Bool bnr_atomic_compare_and_swap_ptr(void *volatile *address, void *expected, void **desired) {
     return __bnr_atomic_compare_and_swap(address, expected, desired, seq_cst);
-}
-
-typedef struct {
-    _Atomic(_Bool) _value;
-} bnr_spinlock_t;
-#define BNR_SPINLOCK_INIT { 0 }
-
-BNR_ATOMIC_DECL _Bool bnr_spinlock_try(volatile bnr_spinlock_t *address) {
-    return !__c11_atomic_exchange(&address->_value, 1, __ATOMIC_ACQUIRE);
-}
-
-BNR_ATOMIC_DECL void bnr_spinlock_lock(volatile bnr_spinlock_t *address) {
-    while (!BNR_ATOMIC_FASTPATH(bnr_spinlock_try(address))) {
-        bnr_atomic_spin();
-    }
-}
-
-BNR_ATOMIC_DECL void bnr_spinlock_unlock(volatile bnr_spinlock_t *address) {
-    __c11_atomic_store(&address->_value, 0, __ATOMIC_RELEASE);
 }
 
 #elif __APPLE__
@@ -291,21 +262,6 @@ BNR_ATOMIC_DECL _Bool bnr_atomic_compare_and_swap_ptr(void *volatile *address, v
     return OSAtomicCompareAndSwapPtr(expected, desired, address);
 }
 
-typedef OSSpinLock        bnr_spinlock_t;
-#define BNR_SPINLOCK_INIT OS_SPINLOCK_INIT
-
-BNR_ATOMIC_DECL _Bool bnr_spinlock_try(volatile bnr_spinlock_t *address) {
-    return OSSpinLockTry(address);
-}
-
-BNR_ATOMIC_DECL void bnr_spinlock_lock(volatile bnr_spinlock_t *address) {
-    return OSSpinLockLock(address);
-}
-
-BNR_ATOMIC_DECL void bnr_spinlock_unlock(volatile bnr_spinlock_t *address) {
-    return OSSpinLockUnlock(address);
-}
-
 #else
 #error Unsupported platform for atomic locking primitives
 #endif
@@ -335,3 +291,61 @@ BNR_ATOMIC_DECL void bnr_atomic_store_ptr(void *volatile *address, void *value) 
 }
 
 #endif
+
+#pragma mark - Spinlocks
+
+BNR_ATOMIC_DECL void bnr_atomic_spin(void) {
+#if defined(__x86_64__) || defined(__i386__)
+    __asm__ __volatile__("pause" ::: "memory");
+#elif defined(__arm__)
+    __asm__ __volatile__("dmb ish" ::: "memory")
+#elif defined(__arm64__)
+    __asm__ __volatile__("yield" ::: "memory");
+#else
+    do {} while (0);
+#endif
+}
+
+// Prefer Darwin spinlocks.
+#if __APPLE__
+
+typedef OSSpinLock        bnr_spinlock_t;
+#define BNR_SPINLOCK_INIT OS_SPINLOCK_INIT
+
+BNR_ATOMIC_DECL _Bool bnr_spinlock_try(volatile bnr_spinlock_t *address) {
+    return OSSpinLockTry(address);
+}
+
+BNR_ATOMIC_DECL void bnr_spinlock_lock(volatile bnr_spinlock_t *address) {
+    return OSSpinLockLock(address);
+}
+
+BNR_ATOMIC_DECL void bnr_spinlock_unlock(volatile bnr_spinlock_t *address) {
+    return OSSpinLockUnlock(address);
+}
+
+#elif __has_extension(c_atomic)
+
+typedef struct {
+    _Atomic(_Bool) _value;
+} bnr_spinlock_t;
+#define BNR_SPINLOCK_INIT { 0 }
+
+BNR_ATOMIC_DECL _Bool bnr_spinlock_try(volatile bnr_spinlock_t *address) {
+    return !__c11_atomic_exchange(&address->_value, 1, __ATOMIC_ACQUIRE);
+}
+
+BNR_ATOMIC_DECL void bnr_spinlock_lock(volatile bnr_spinlock_t *address) {
+    while (!BNR_ATOMIC_FASTPATH(bnr_spinlock_try(address))) {
+        bnr_atomic_spin();
+    }
+}
+
+BNR_ATOMIC_DECL void bnr_spinlock_unlock(volatile bnr_spinlock_t *address) {
+    __c11_atomic_store(&address->_value, 0, __ATOMIC_RELEASE);
+}
+
+#else
+#error Unsupported platform for spinlock
+#endif
+
