@@ -103,27 +103,27 @@ BNR_ATOMIC_DECL int32_t bnr_atomic_decrement_32(volatile int32_t *address) {
     return bnr_atomic_sub_32(address, 1);
 }
 
-BNR_ATOMIC_DECL int32_t bnr_atomic_or_32(volatile int32_t *address, uint32_t mask) {
+BNR_ATOMIC_DECL int32_t bnr_atomic_or_32(volatile int32_t *address, int32_t mask) {
     return __bnr_atomic_math(address, mask, seq_cst, or, |);
 }
 
-BNR_ATOMIC_DECL int32_t bnr_atomic_or_32_orig(volatile int32_t *address, uint32_t mask) {
+BNR_ATOMIC_DECL int32_t bnr_atomic_or_32_orig(volatile int32_t *address, int32_t mask) {
     return __bnr_atomic_math_orig(address, mask, seq_cst, or, |);
 }
 
-BNR_ATOMIC_DECL int32_t bnr_atomic_xor_32(volatile int32_t *address, uint32_t mask) {
+BNR_ATOMIC_DECL int32_t bnr_atomic_xor_32(volatile int32_t *address, int32_t mask) {
     return __bnr_atomic_math(address, mask, seq_cst, xor, ^);
 }
 
-BNR_ATOMIC_DECL int32_t bnr_atomic_xor_32_orig(volatile int32_t *address, uint32_t mask) {
+BNR_ATOMIC_DECL int32_t bnr_atomic_xor_32_orig(volatile int32_t *address, int32_t mask) {
     return __bnr_atomic_math_orig(address, mask, seq_cst, xor, ^);
 }
 
-BNR_ATOMIC_DECL int32_t bnr_atomic_and_32(volatile int32_t *address, uint32_t mask) {
+BNR_ATOMIC_DECL int32_t bnr_atomic_and_32(volatile int32_t *address, int32_t mask) {
     return __bnr_atomic_math(address, mask, seq_cst, and, &);
 }
 
-BNR_ATOMIC_DECL int32_t bnr_atomic_and_32_orig(volatile int32_t *address, uint32_t mask) {
+BNR_ATOMIC_DECL int32_t bnr_atomic_and_32_orig(volatile int32_t *address, int32_t mask) {
     return __bnr_atomic_math_orig(address, mask, seq_cst, and, &);
 }
 
@@ -238,28 +238,28 @@ BNR_ATOMIC_DECL int32_t bnr_atomic_decrement_32(volatile int32_t *address) {
     return OSAtomicDecrement32(address);
 }
 
-BNR_ATOMIC_DECL int32_t bnr_atomic_or_32(volatile uint32_t *address, uint32_t mask) {
-    return OSAtomicOr32(mask, address);
+BNR_ATOMIC_DECL int32_t bnr_atomic_or_32(volatile int32_t *address, int32_t mask) {
+    return OSAtomicOr32(mask, (volatile uint32_t *)address);
 }
 
-BNR_ATOMIC_DECL int32_t bnr_atomic_or_32_orig(volatile uint32_t *address, uint32_t mask) {
-    return OSAtomicOr32Orig(mask, address);
+BNR_ATOMIC_DECL int32_t bnr_atomic_or_32_orig(volatile int32_t *address, int32_t mask) {
+    return OSAtomicOr32Orig(mask, (volatile uint32_t *)address);
 }
 
-BNR_ATOMIC_DECL int32_t bnr_atomic_xor_32(volatile uint32_t *address, uint32_t mask) {
-    return OSAtomicXor32(mask, address);
+BNR_ATOMIC_DECL int32_t bnr_atomic_xor_32(volatile int32_t *address, int32_t mask) {
+    return OSAtomicXor32(mask, (volatile uint32_t *)address);
 }
 
-BNR_ATOMIC_DECL int32_t bnr_atomic_xor_32_orig(volatile uint32_t *address, uint32_t mask) {
-    return OSAtomicXor32Orig(mask, address);
+BNR_ATOMIC_DECL int32_t bnr_atomic_xor_32_orig(volatile int32_t *address, int32_t mask) {
+    return OSAtomicXor32Orig(mask, (volatile uint32_t *)address);
 }
 
-BNR_ATOMIC_DECL int32_t bnr_atomic_and_32(volatile uint32_t *address, uint32_t mask) {
-    return OSAtomicAnd32(mask, address);
+BNR_ATOMIC_DECL int32_t bnr_atomic_and_32(volatile int32_t *address, int32_t mask) {
+    return OSAtomicAnd32(mask, (volatile uint32_t *)address);
 }
 
-BNR_ATOMIC_DECL int32_t bnr_atomic_and_32_orig(volatile uint32_t *address, uint32_t mask) {
-    return OSAtomicAnd32Orig(mask, address);
+BNR_ATOMIC_DECL int32_t bnr_atomic_and_32_orig(volatile int32_t *address, int32_t mask) {
+    return OSAtomicAnd32Orig(mask, (volatile uint32_t *)address);
 }
 
 BNR_ATOMIC_DECL _Bool bnr_atomic_compare_and_swap_32(volatile int32_t *address, int32_t expected, int32_t desired) {
