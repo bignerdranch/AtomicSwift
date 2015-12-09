@@ -11,6 +11,9 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#if __APPLE__
+#import <libkern/OSAtomic.h>
+#endif
 
 #ifndef __has_feature
 #define __has_feature(x) 0
@@ -153,8 +156,6 @@ BNR_ATOMIC_DECL _Bool bnr_atomic_compare_and_swap_ptr(void *volatile *address, v
 }
 
 #elif __APPLE__
-
-#import <libkern/OSAtomic.h>
 
 #define __bnr_atomic_load(ptr, model) ({ \
     typeof(*(ptr)) _ret = *(ptr); \
