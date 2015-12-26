@@ -39,6 +39,23 @@
 #define BNR_ATOMIC_FASTPATH(x) (x)
 #endif
 
+#if __has_feature(assume_nonnull)
+#define BNR_ATOMIC_ASSUME_NONNULL_BEGIN _Pragma("clang assume_nonnull begin")
+#define BNR_ATOMIC_ASSUME_NONNULL_END   _Pragma("clang assume_nonnull end")
+#else
+#define BNR_ATOMIC_ASSUME_NONNULL_BEGIN
+#define BNR_ATOMIC_ASSUME_NONNULL_END
+#endif
+
+#if !__has_feature(nullability)
+#ifndef _Nullable
+#define _Nullable
+#endif
+#ifndef _Nonnull
+#define _Nonnull
+#endif
+#endif
+
 // SWIFT_ENUM should be namespaced, but the Swift compiler looks for specific macros
 #if !defined(SWIFT_ENUM)
 #if __has_feature(objc_fixed_enum)
@@ -59,6 +76,8 @@ typedef SWIFT_ENUM(bnr_atomic_memory_order_t, int32_t) {
     bnr_atomic_memory_order_acq_rel,
     bnr_atomic_memory_order_seq_cst
 };
+
+BNR_ATOMIC_ASSUME_NONNULL_BEGIN
 
 #if __has_extension(c_atomic) && __has_extension(c_generic_selections)
 
@@ -157,7 +176,7 @@ BNR_ATOMIC_DECL _Bool bnr_atomic_compare_and_swap_64(volatile int64_t *address, 
     return __bnr_atomic_compare_and_swap(address, expected, desired, seq_cst);
 }
 
-BNR_ATOMIC_DECL _Bool bnr_atomic_compare_and_swap_ptr(void *volatile *address, void *expected, void **desired) {
+BNR_ATOMIC_DECL _Bool bnr_atomic_compare_and_swap_ptr(void *_Nullable volatile *_Nonnull address, void *_Nullable expected, void *_Nullable * _Nonnull desired) {
     return __bnr_atomic_compare_and_swap(address, expected, desired, seq_cst);
 }
 
@@ -264,7 +283,7 @@ BNR_ATOMIC_DECL _Bool bnr_atomic_compare_and_swap_64(volatile int64_t *address, 
     return OSAtomicCompareAndSwap64(expected, desired, address);
 }
 
-BNR_ATOMIC_DECL _Bool bnr_atomic_compare_and_swap_ptr(void *volatile *address, void *expected, void *desired) {
+BNR_ATOMIC_DECL _Bool bnr_atomic_compare_and_swap_ptr(void *_Nullable volatile *_Nonnull address, void *_Nullable expected, void *_Nullable * _Nonnull desired) {
     return OSAtomicCompareAndSwapPtr(expected, desired, address);
 }
 
@@ -288,11 +307,11 @@ BNR_ATOMIC_DECL void bnr_atomic_store_64(volatile int64_t *address, int64_t valu
     __bnr_atomic_store(address, value, seq_cst);
 }
 
-BNR_ATOMIC_DECL void *bnr_atomic_load_ptr(void *volatile *address) {
+BNR_ATOMIC_DECL void *_Nullable bnr_atomic_load_ptr(void *_Nullable volatile *_Nonnull address) {
     return __bnr_atomic_load(address, seq_cst);
 }
 
-BNR_ATOMIC_DECL void bnr_atomic_store_ptr(void *volatile *address, void *value) {
+BNR_ATOMIC_DECL void bnr_atomic_store_ptr(void *_Nullable volatile *_Nonnull address, void *_Nullable value) {
     __bnr_atomic_store(address, value, seq_cst);
 }
 
@@ -354,3 +373,5 @@ BNR_ATOMIC_DECL void bnr_spinlock_unlock(volatile bnr_spinlock_t *address) {
 #else
 #error Unsupported platform for spinlock
 #endif
+
+BNR_ATOMIC_ASSUME_NONNULL_END
