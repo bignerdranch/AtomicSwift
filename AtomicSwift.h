@@ -275,9 +275,7 @@ BNR_ATOMIC_DECL void bnr_atomic_store_ptr(void *_Nullable volatile *_Nonnull add
 BNR_ATOMIC_DECL void bnr_atomic_spin(void) {
 #if defined(__x86_64__) || defined(__i386__)
     __asm__ __volatile__("pause" ::: "memory");
-#elif defined(__arm__)
-    __asm__ __volatile__("dmb ish" ::: "memory")
-#elif defined(__arm64__)
+#elif defined(__arm__) || defined(__arm64__)
     __asm__ __volatile__("yield" ::: "memory");
 #else
     do {} while (0);
